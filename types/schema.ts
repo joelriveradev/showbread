@@ -1,19 +1,4 @@
-export interface Sentence {
-  text: string
-  start: number
-  end: number
-  confidence: number
-  speaker: string | null
-}
-
-export interface Transcript {
-  id: string
-  confidence: number
-  audio_duration: number
-  sentences: Sentence[]
-}
-
-export interface Summary {
+export interface Report {
   id: string
   summary: string
   featuredQuote: string
@@ -23,12 +8,12 @@ export interface Summary {
 }
 
 export interface Sermon {
-  id: string
+  sermon_id: string
   title: string
   speaker: string
-  // transcript: Transcript
-  // summary: Summary
-  // notes: string
+  url: string
+  transcript_id: string
+  report_id: string
   duration: number
 }
 
