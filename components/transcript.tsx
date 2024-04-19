@@ -79,7 +79,7 @@ export function Transcript({ audioUrl, paragraphs }: Props) {
       <audio src={audioUrl} controls className='w-full' ref={audioRef} />
 
       <ScrollArea className='h-[calc(100dvh-265px)] mt-5'>
-        {paragraphs.map(({ text, start, end }, i) => {
+        {paragraphs.map(({ text, start }, i) => {
           const isActive = active && active.start === start
 
           return (
