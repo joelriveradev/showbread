@@ -27,11 +27,11 @@ export async function POST(request: Request) {
       new PutObjectCommand({
         Bucket: 'showbread-blob',
         Key: objectKey,
-        ContentType: 'application/octet-stream',
+        ContentType: type,
         ACL: 'public-read',
       }),
       {
-        expiresIn: 60 * 3, // 3 minutes
+        expiresIn: 60 * 5, // 5 minutes
       }
     )
     return NextResponse.json({ preSignedUrl, publicUrl })

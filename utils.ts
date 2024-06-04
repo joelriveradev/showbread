@@ -8,3 +8,13 @@ export function formatTime(milliseconds: number): string {
 
   return `${minutes}:${paddedSeconds}`
 }
+
+export const slugify = (str: string) => {
+  return str
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/\./g, '-')
+    .replace(/-+/g, '-')
+    .replace(/[^a-z0-9-]/g, '-')
+}

@@ -9,6 +9,7 @@ export async function createSermon(data: FormData) {
   const url = data.get('url') as string
   const report = data.get('report') as string
   const transcript = data.get('transcript') as string
+  const studySeries = data.get('studySeries') as string
 
   const result = await sql`
     INSERT INTO sermons (
@@ -16,12 +17,14 @@ export async function createSermon(data: FormData) {
       speaker,
       url,
       report_id,
+      study_series,
       transcript_id
     ) values (
       ${title}, 
       ${speaker}, 
       ${url},
       ${report},
+      ${studySeries},
       ${transcript}
     ) RETURNING sermon_id;
   `

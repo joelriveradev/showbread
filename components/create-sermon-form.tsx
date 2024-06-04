@@ -1,6 +1,5 @@
 'use client'
 
-import { upload } from '@vercel/blob/client'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 import { useFormStatus } from 'react-dom'
@@ -8,10 +7,12 @@ import { Input } from '@/components/ui/input'
 import { createSermon } from '@/actions/create-sermon'
 import { createTranscript } from '@/actions/create-transcript'
 import { createReport } from '@/actions/create-report'
+// import { createStudySeries } from '@/actions/create-study-series'
 
 export const CreateSermonForm = () => {
   const [url, setUrl] = useState<string>()
   const [transcript, setTranscript] = useState<string>()
+  // const [studySeries, setStudySeries] = useState<string>()
   const [report, setReport] = useState<string>()
   const [loading, setLoading] = useState(false)
   const { pending } = useFormStatus()
@@ -26,6 +27,9 @@ export const CreateSermonForm = () => {
     if (loading && url && transcript && !report) {
       return 'Creating report...'
     }
+    // if (loading && url && transcript && report && !studySeries) {
+    //   return 'Creating study series...'
+    // }
     if (loading && url && transcript && report) {
       return 'Creating Sermon...'
     } else {
@@ -38,26 +42,46 @@ export const CreateSermonForm = () => {
   ) => {
     const files = event.target.files
 
-    if (files && files.length > 0) {
-      setLoading(true)
+    try {
+      if (files && files.length > 0) {
+        setLoading(true)
 
-      const file = files[0]
+        const file = files[0]
 
-      // 1. Upload the audio file to the server
-      const { url } = await upload(file.name, file, {
-        access: 'public',
-        handleUploadUrl: '/api/sermon/upload',
-      })
+        // 1. Upload the audio file to the server
+        const body = new FormData()
+        body.append('file', file)
 
-      setUrl(url)
+        const { preSignedUrl, publicUrl } = await fetch('/api/sermon/upload', {
+          method: 'POST',
+          body,
+        }).then((response) => response.json())
 
-      // 2. Transcribe the audio file
-      const transcript = await createTranscript(url)
-      setTranscript(transcript.id)
+        await fetch(preSignedUrl as string, {
+          method: 'PUT',
+          body: file,
+          headers: {
+            'Content-Type': 'application/octet-stream',
+          },
+        })
 
-      // 3. Create the AI report
-      const report = await createReport(transcript.text!)
-      setReport(report.id)
+        setUrl(publicUrl)
+
+        // // 2. Transcribe the audio file
+        const { id, text } = await createTranscript(publicUrl)
+        setTranscript(id)
+
+        // // 3. Create the AI report
+        const report = await createReport(text!)
+        setReport(report.id)
+
+        // // 4. Create the study series
+        // const series = await createStudySeries(text!)
+        // setStudySeries(series)
+        setLoading(false)
+      }
+    } catch (error) {
+      console.error(error)
       setLoading(false)
     }
   }
@@ -83,6 +107,7 @@ export const CreateSermonForm = () => {
 
       <Input type='hidden' name='url' value={url ?? ''} />
       <Input type='hidden' name='transcript' value={transcript ?? ''} />
+      {/* <Input type='hidden' name='studySeries' value={studySeries ?? ''} /> */}
       <Input type='hidden' name='report' value={report ?? ''} />
 
       <Input
