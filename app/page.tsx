@@ -15,7 +15,7 @@ import { Sermon } from '@/types/schema'
 import { SermonList } from '@/components/sermons'
 
 export default async function Home() {
-  const { rows } = await sql`SELECT * FROM sermons;`
+  const { rows: sermons } = await sql`SELECT * FROM sermons;`
 
   return (
     <div className='w-full min-h-dvh max-w-md mx-auto'>
@@ -43,7 +43,7 @@ export default async function Home() {
         </Button>
       </header>
 
-      <SermonList sermons={rows as Sermon[]} />
+      <SermonList sermons={sermons as Sermon[]} />
     </div>
   )
 }
