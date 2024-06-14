@@ -1,18 +1,9 @@
 'use server'
 
-import OpenAI from 'openai'
-
+import { openai } from '@ai-sdk/openai'
+import { generateObject } from 'ai'
 import { sql } from '@vercel/postgres'
-import { ChatCompletionMessageParam } from 'openai/resources/index.mjs'
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
-
-interface ReportSection {
-  key: string
-  value: string | string[]
-}
+import { z } from 'zod'
 
 export async function createReport(
   transcript: string
@@ -21,129 +12,109 @@ export async function createReport(
     const prompt = `
     You are an assistant to help summarize sermon transcripts
     and extract insights to help users further explore
-    sermon content. Given a transcript, generate a
-    report that contains the following:
+    sermon content. Given a transcript, generate a report 
+    that contains the following:
 
-    1. A brief summary of the sermon (summary)
-    2. A list of the key takeaways (key_takeaways)
-    3. A list of featured quotes (featured_quotes)
-    4. A list of the bible verses used (scripture_refs)
-    5. A list of categories that the sermon falls under, no more than 3 (tags)
-    6. The overall sentiment of the sermon (sentiment)
-
-    Return the summary as a raw JSON array of key-value pair objects,
-    where the key is the section of the report ie: summary, takeaways, etc.
-    like so: [{ key: 'summary', value: 'The sermon was about...' }]
-    The names for each section I want you to use are in parentheses.
-    DO NOT RETURN THE DATA IN MARKDOWN, ONLY IN RAW JSON.
+    1. A brief summary of the sermon
+    2. A list of the key takeaways
+    3. A list of featured quotes
+    4. A list of the bible verses used in the sermon
+    5. A list of categories that the sermon falls under, no more than 3
+    6. The overall sentiment of the sermon
 
     Here's the transcript: "${transcript}"
   `
 
-    const messages: ChatCompletionMessageParam[] = [
-      { role: 'system', content: prompt },
-    ]
-
     try {
       // 1. Generate the report
-      const completion = await client.chat.completions.create({
-        model: 'gpt-4-turbo-preview',
-        messages,
+
+      const keys = {
+        summary_id: '',
+        key_takeaway_id: '',
+        featured_quote_id: '',
+        scripture_ref_id: '',
+        tag_id: '',
+        sentiment_id: '',
+      }
+
+      const { object: report } = await generateObject({
+        model: openai('gpt-4o'),
+        schema: z.object({
+          summary: z.string().describe('A brief summary of the sermon.'),
+          key_takeaway: z.string().describe('A list of the key takeaways.'),
+          featured_quote: z.string().describe('A list of featured quotes.'),
+          scripture_ref: z
+            .string()
+            .describe('A list of the bible verses used in the sermon.'),
+          tags: z.string().describe('A list of categories of the sermon'),
+          sentiment: z
+            .string()
+            .describe('The overall sentiment of the sermon.'),
+        }),
+        prompt,
       })
 
-      // remove markdown formatting
-      // just in case chatGPT doesn't follow instructions
-      const content = completion.choices[0].message.content
-        ?.replace(/```/g, '')
-        .replace('json', '')
+      if (report) {
+        console.log({ report })
 
-      if (content) {
-        const keys = {
-          summary_id: '',
-          key_takeaway_id: '',
-          featured_quote_id: '',
-          scripture_ref_id: '',
-          tag_id: '',
-          sentiment_id: '',
+        const summary = await sql`
+          INSERT INTO summaries(summary)
+          values(${report.summary})
+          RETURNING summary_id;
+        `
+
+        const key_takeaway = await sql`
+          INSERT INTO key_takeaways(key_takeaway)
+          values(${report.key_takeaway})
+          RETURNING key_takeaway_id;
+        `
+
+        const quotes = await sql`
+          INSERT INTO featured_quotes(featured_quote)
+          values(${report.featured_quote})
+          RETURNING featured_quote_id;
+        `
+
+        const scripture_ref = await sql`
+          INSERT INTO scripture_refs(scripture_ref)
+          values(${report.scripture_ref})
+          RETURNING scripture_ref_id;
+        `
+
+        const tags = await sql`
+          INSERT INTO tags(tag)
+          values(${report.tags})
+          RETURNING tag_id;
+        `
+
+        const sentiment = await sql`
+          INSERT INTO sentiments(sentiment)
+          values(${report.sentiment})
+          RETURNING sentiment_id;
+        `
+
+        if (summary.rows.length > 0) {
+          keys.summary_id = summary.rows[0].summary_id
         }
+        if (key_takeaway.rows.length > 0) {
+          keys.key_takeaway_id = key_takeaway.rows[0].key_takeaway_id
+        }
+        if (tags.rows.length > 0) {
+          keys.tag_id = tags.rows[0].tag_id
+        }
+        if (sentiment.rows.length > 0) {
+          keys.sentiment_id = sentiment.rows[0].sentiment_id
+        }
+        if (scripture_ref.rows.length > 0) {
+          keys.scripture_ref_id = scripture_ref.rows[0].scripture_ref_id
+        }
+        if (quotes.rows.length > 0) {
+          keys.featured_quote_id = quotes.rows[0].featured_quote_id
+        }
+      }
 
-        console.log(content)
-        const report: ReportSection[] = JSON.parse(content)
-
-        // 2. Insert each section of the report into the database
-        await Promise.all(
-          report.map(async ({ key, value }: ReportSection) => {
-            const deliminator = ' - '
-
-            const serializedValue = Array.isArray(value)
-              ? value.join(deliminator)
-              : value
-
-            if (key === 'summary') {
-              const { rows } = await sql`
-              INSERT INTO summaries(summary)
-              values(${serializedValue})
-              RETURNING summary_id;
-            `
-              if (rows.length > 0) {
-                keys.summary_id = rows[0].summary_id
-              }
-            }
-            if (key === 'key_takeaways') {
-              const { rows } = await sql`
-              INSERT INTO key_takeaways(key_takeaway)
-              values(${serializedValue})
-              RETURNING key_takeaway_id;
-            `
-              if (rows.length > 0) {
-                keys.key_takeaway_id = rows[0].key_takeaway_id
-              }
-            }
-            if (key === 'featured_quotes') {
-              const { rows } = await sql`
-              INSERT INTO featured_quotes(featured_quote)
-              values(${serializedValue})
-              RETURNING featured_quote_id;
-            `
-              if (rows.length > 0) {
-                keys.featured_quote_id = rows[0].featured_quote_id
-              }
-            }
-            if (key === 'scripture_refs') {
-              const { rows } = await sql`
-              INSERT INTO scripture_refs(scripture_ref)
-              values(${serializedValue})
-              RETURNING scripture_ref_id;
-            `
-              if (rows.length > 0) {
-                keys.scripture_ref_id = rows[0].scripture_ref_id
-              }
-            }
-            if (key === 'tags') {
-              const { rows } = await sql`
-              INSERT INTO tags(tag)
-              values(${serializedValue})
-              RETURNING tag_id;
-            `
-              if (rows.length > 0) {
-                keys.tag_id = rows[0].tag_id
-              }
-            }
-            if (key === 'sentiment') {
-              const { rows } = await sql`
-              INSERT INTO sentiments(sentiment)
-              values(${serializedValue})
-              RETURNING sentiment_id;
-            `
-              if (rows.length > 0) {
-                keys.sentiment_id = rows[0].sentiment_id
-              }
-            }
-          })
-        )
-
-        // 2. Insert the report into the database
-        const { rows } = await sql`
+      // 2. Insert the report ids into the database
+      const { rows } = await sql`
           INSERT INTO reports(
             summary_id,
             key_takeaway_id,
@@ -160,9 +131,8 @@ export async function createReport(
             ${keys.sentiment_id}
           ) RETURNING report_id;
         `
-        if (rows.length > 0) {
-          resolve({ id: rows[0].report_id })
-        }
+      if (rows.length > 0) {
+        resolve({ id: rows[0].report_id })
       }
     } catch (error) {
       reject(
