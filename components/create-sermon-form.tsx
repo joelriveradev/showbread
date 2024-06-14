@@ -7,12 +7,10 @@ import { Input } from '@/components/ui/input'
 import { createSermon } from '@/actions/create-sermon'
 import { createTranscript } from '@/actions/create-transcript'
 import { createReport } from '@/actions/create-report'
-// import { createStudySeries } from '@/actions/create-study-series'
 
 export const CreateSermonForm = () => {
   const [url, setUrl] = useState<string>()
   const [transcript, setTranscript] = useState<string>()
-  // const [studySeries, setStudySeries] = useState<string>()
   const [report, setReport] = useState<string>()
   const [loading, setLoading] = useState(false)
   const { pending } = useFormStatus()
@@ -27,9 +25,6 @@ export const CreateSermonForm = () => {
     if (loading && url && transcript && !report) {
       return 'Creating report...'
     }
-    // if (loading && url && transcript && report && !studySeries) {
-    //   return 'Creating study series...'
-    // }
     if (loading && url && transcript && report) {
       return 'Creating Sermon...'
     } else {
@@ -67,17 +62,13 @@ export const CreateSermonForm = () => {
 
         setUrl(publicUrl)
 
-        // // 2. Transcribe the audio file
+        // 2. Transcribe the audio file
         const { id, text } = await createTranscript(publicUrl)
         setTranscript(id)
 
-        // // 3. Create the AI report
+        // 3. Create the AI report
         const report = await createReport(text!)
         setReport(report.id)
-
-        // // 4. Create the study series
-        // const series = await createStudySeries(text!)
-        // setStudySeries(series)
         setLoading(false)
       }
     } catch (error) {
@@ -107,7 +98,6 @@ export const CreateSermonForm = () => {
 
       <Input type='hidden' name='url' value={url ?? ''} />
       <Input type='hidden' name='transcript' value={transcript ?? ''} />
-      {/* <Input type='hidden' name='studySeries' value={studySeries ?? ''} /> */}
       <Input type='hidden' name='report' value={report ?? ''} />
 
       <Input

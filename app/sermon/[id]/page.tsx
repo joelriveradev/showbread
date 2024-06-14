@@ -1,20 +1,12 @@
 import { Sermon } from '@/types/schema'
 import { Button } from '@/components/ui/button'
-
-import {
-  Ellipsis,
-  AudioLines,
-  MessageSquareText,
-  Sparkles,
-  BookOpenText,
-} from 'lucide-react'
+import { Ellipsis, AudioLines, MessageSquareText, Sparkles } from 'lucide-react'
 
 import { Chat } from '@/components/chat'
 import { Report } from '@/components/report'
 import { Show } from '@/components/show'
 import { BackButton } from '@/components/back-button'
 import { Transcript } from '@/components/transcript'
-import { StudySeries } from '@/components/study-series'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import { getSermon } from '@/actions/get-sermon'
@@ -59,10 +51,6 @@ export default async function SermonDetailPage({ params: { id } }: Props) {
             <Sparkles size={24} />
           </TabsTrigger>
 
-          <TabsTrigger value='study'>
-            <BookOpenText size={24} />
-          </TabsTrigger>
-
           <TabsTrigger value='chat'>
             <MessageSquareText size={24} />
           </TabsTrigger>
@@ -74,10 +62,6 @@ export default async function SermonDetailPage({ params: { id } }: Props) {
 
         <TabsContent value='summary'>
           <Report id={report_id} />
-        </TabsContent>
-
-        <TabsContent value='study' className='m-0'>
-          <StudySeries sermon_id={sermon_id} />
         </TabsContent>
 
         <TabsContent value='chat' className='m-0'>
