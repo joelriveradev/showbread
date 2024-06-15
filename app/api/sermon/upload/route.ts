@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     })
   }
 
-  const { type, name } = file
+  const { name } = file
 
   const objectKey = `${Date.now().toString()}-${slugify(name)}`
   const publicUrl = `${bucketUrl}/${objectKey}`
