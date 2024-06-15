@@ -1,10 +1,5 @@
-import { OpenAIStream, StreamingTextResponse } from 'ai'
-import { ChatCompletionMessageParam } from 'openai/resources/index.mjs'
-import OpenAI from 'openai'
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+import { streamText, StreamingTextResponse } from 'ai'
+import { openai } from '@ai-sdk/openai'
 
 // Set the runtime to edge for best performance
 export const runtime = 'edge'
@@ -18,16 +13,15 @@ export async function POST(req: Request) {
     the content of the transcript. Here's the transcript: "${transcript}"
   `
 
-  const initialMessage: ChatCompletionMessageParam = {
+  const initialMessage = {
     role: 'system',
     content: prompt,
   }
 
-  const response = await client.chat.completions.create({
-    model: 'gpt-4-turbo-preview',
-    stream: true,
+  const response = await streamText({
+    model: openai('gpt-4o-2024-05-13'),
     messages: [initialMessage, ...messages],
   })
 
-  return new StreamingTextResponse(OpenAIStream(response))
+  return new StreamingTextResponse(response.toAIStream())
 }
