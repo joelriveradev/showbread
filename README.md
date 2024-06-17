@@ -2,6 +2,10 @@
 
 A multimodal app that transcribes and generates detailed AI-powered reports and insights from sermon audio.
 
+**Demo**
+
+https://github.com/joelriveradev/showbread/assets/10171624/883c588f-5bbe-4500-9494-727d11ff1f3d
+
 **Features:**
 
 - Create a transcript from sermon audio files
